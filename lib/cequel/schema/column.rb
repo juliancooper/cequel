@@ -86,6 +86,7 @@ module Cequel
       # @api private
       #
       def cast(value)
+
         @type.cast(value)
       end
 

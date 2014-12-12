@@ -185,8 +185,25 @@ module Cequel
       #
       def save(options = {})
         options.assert_valid_keys(:consistency, :ttl, :timestamp)
-        if new_record? then create(options)
-        else update(options)
+
+        # loop through all attributes and cast
+        self.class.columns.each do |column|
+          begin
+            self.attributes[column.name] = column.cast(self.attributes[column.name])
+          rescue Exception => e
+            abort = true
+            self.errors[column.name] << e
+          end
+        end
+
+        if abort
+          return false
+        end
+
+        if new_record?
+          create(options)
+        else
+          update(options)
         end
         @new_record = false
         true
@@ -316,7 +333,7 @@ module Cequel
       def write_attribute(name, value)
         column = self.class.reflect_on_column(name)
         fail UnknownAttributeError, "unknown attribute: #{name}" unless column
-        value = column.cast(value) unless value.nil?
+        # value = column.cast(value) unless value.nil?
 
         if !new_record? && key_attributes.keys.include?(name)
           if read_attribute(name) != value
